@@ -1,15 +1,10 @@
-const { Client, IntentsBitField, Events, Partials, ChannelType } = require('discord.js');
+const { Client, IntentsBitField, Events, Partials, ChannelType, REST, Collection, Routes, MessageFlags } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
 const prefix = '!';
 const client = new Client({
-  intents: new IntentsBitField([
-    'Guilds',
-    'GuildMessages',
-    'MessageContent',
-    'DirectMessages'
-  ]),
+  intents: new IntentsBitField(53608447),
   partials: [
 	Partials.Message,
 	Partials.Channel,
@@ -19,48 +14,61 @@ const client = new Client({
   ]
 });
 
+const rest = new REST().setToken('MTA4Mzc3OTk0MzcwMTQxMzk3MQ.GD1-5Y.Q-jJckTYYQU4HmIbvTY5sROzbnJ-7QYjzIUUTQ');
 const commands = [];
+const clientId = '1083779943701413971'; // z. B. von Discord Developer Portal
 
-// Lade alle Befehlsdateien aus dem "commands" Ordner
-const commandFiles = fs.readdirSync(path.join(__dirname, 'commands')).filter(file => file.endsWith('.js'));
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
-  commands.push(command);
+	const filePath = path.join(__dirname, 'commands', file);
+	const command = require(filePath);
+	if ('data' in command && 'execute' in command) {
+		commands.push(command);
+		console.log(commands.map(command => command));
+	} else {
+		console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+	}
 }
 
-client.once('ready', () => {
+(async () => {
+	await rest.put(
+		Routes.applicationCommands(clientId),
+		{ body: commands.map(command => command.data.toJSON()) }, // Corrected to map over commands and convert to JSON
+	);
+	console.log('Successfully reloaded application (/) commands.');
+})().catch(console.error);
+
+
+
+client.once('ready', async () => {
 	console.log(`Logged in as ${client.user.tag}`);
 });
-
-client.on(Events.MessageCreate, async message => {
-	if (!message.content.startsWith(prefix) || message.author.bot) return;
-
-	if (message.channel.type === ChannelType.DM) {
-        message.reply('You cannot use commands in DMs!');
-        return;
-    }
-
-	const args = message.content.slice(prefix.length).trim().split(/ +/);
-	const commandName = args.shift().toLowerCase();
   
-	if (!commandName) {
-	  return;
-	}
-  
-	const command = commands.find(cmd => cmd.name === commandName);
-	
+
+client.on(Events.InteractionCreate, async interaction => {
+	if (!interaction.isChatInputCommand()) return;
+
+	const command = commands.find(cmd => cmd.data.name === interaction.commandName);
+	console.log(command)
+
 	if (!command) {
-	  return;
+		console.error(`No command matching ${interaction.commandName} was found.`);
+		return;
 	}
-  
+
+	console.log(command)
+
 	try {
-	  command.execute(message, args);
+		await command.execute(interaction);
 	} catch (error) {
-	  console.error(error);
-	  message.reply('Es gab einen Fehler beim Ausführen dieses Befehls!');
+		console.error(error);
+		if (interaction.replied || interaction.deferred) {
+			await interaction.followUp({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
+		} else {
+			await interaction.reply({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
+		}
 	}
-  });
+});
   
-  
-client.login()
+client.login('MTA4Mzc3OTk0MzcwMTQxMzk3MQ.GD1-5Y.Q-jJckTYYQU4HmIbvTY5sROzbnJ-7QYjzIUUTQ')
