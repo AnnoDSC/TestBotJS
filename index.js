@@ -14,7 +14,7 @@ const client = new Client({
   ]
 });
 
-const rest = new REST().setToken('MTA4Mzc3OTk0MzcwMTQxMzk3MQ.GD1-5Y.Q-jJckTYYQU4HmIbvTY5sROzbnJ-7QYjzIUUTQ');
+const rest = new REST().setToken('token');
 const commands = [];
 const clientId = '1083779943701413971'; // z. B. von Discord Developer Portal
 
