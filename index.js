@@ -1,5 +1,6 @@
 const { Client, IntentsBitField, Events, Partials, ChannelType, REST, Collection, Routes, MessageFlags } = require('discord.js');
 const fs = require('fs');
+const config = require('./config.json');
 const path = require('path');
 
 const prefix = '!';
@@ -14,9 +15,8 @@ const client = new Client({
   ]
 });
 
-const rest = new REST().setToken('token');
+const rest = new REST().setToken(config.token);
 const commands = [];
-const clientId = '1083779943701413971'; // z. B. von Discord Developer Portal
 
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
@@ -31,17 +31,14 @@ for (const file of commandFiles) {
 	}
 }
 
-(async () => {
-	await rest.put(
-		Routes.applicationCommands(clientId),
-		{ body: commands.map(command => command.data.toJSON()) }, // Corrected to map over commands and convert to JSON
-	);
-	console.log('Successfully reloaded application (/) commands.');
-})().catch(console.error);
-
 
 
 client.once('ready', async () => {
+	await rest.put(
+		Routes.applicationCommands(config.clientId),
+		{ body: commands.map(command => command.data.toJSON()) }, // Corrected to map over commands and convert to JSON
+	);
+	console.log('Successfully reloaded application (/) commands.');
 	console.log(`Logged in as ${client.user.tag}`);
 });
   
@@ -71,4 +68,4 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 });
   
-client.login('token')
+client.login(config.token)
